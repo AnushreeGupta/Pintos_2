@@ -96,8 +96,19 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    struct semaphore sema_wait;         /* Semaphore for process_wait. */
+    struct semaphore sema_exit;         /* Semaphore for process_exit. */
+    struct thread *parent;              /* The parent of the thread */
+    struct file *exec;                  /* The file containing the thread executable */
+    struct list files_list;                  /* A list of open files */
+    struct list mfiles_list;                 /* A list of memory mapped files */
+    struct list child_list;               /* A list of children process */
+    struct list_elem child_elem;        /* List elem for children list */
+    int ret_status;                     /* Return status. */
+    bool exit;                        /* If the process exited? */
+    bool wait; 			/* If parent thread has called wait */
 #endif
-
+    struct child_process* child_process;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };

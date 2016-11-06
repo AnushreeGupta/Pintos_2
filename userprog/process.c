@@ -37,6 +37,10 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+ 
+  char *token, *save_ptr;
+  file_name = strtok_r ((char*)file_name, " ", &save_ptr);
+
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -53,6 +57,11 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+
+  //getting the first parsed token
+  char *save_ptr;
+  file_name = strtok_r(file_name, " ", &save_ptr);
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -88,7 +97,24 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  //return -1;
+struct child_process* cp = get_child_process(child_tid);
+  if (!cp)
+    {
+      return ERROR;
+    }
+  if (cp->wait)
+    {
+      return ERROR;
+    }
+  cp->wait = true;
+  while (!cp->exit)
+    {
+      barrier();
+    }
+  int status = cp->status;
+  remove_child_process(cp);
+return status;
 }
 
 /* Free the current process's resources. */
@@ -442,6 +468,10 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
   return success;
+
+
+
+
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

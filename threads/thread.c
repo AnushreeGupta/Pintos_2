@@ -209,6 +209,24 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  
+#ifdef USERPROG
+  sema_init (&t->sema_wait, 0);
+  sema_init (&t->sema_exit, 0);
+  t->ret_status = RET_STATUS_INIT;
+    
+  list_init (&t->child_list);
+  struct child_process *cp = add_child_process(t->tid);
+  t->cp = cp;
+  t->exit = false;
+  t->wait = false;
+  t->parent = thread_current ();
+  if (thread_current () != initial_thread)
+    list_push_back (&thread_current ()->child_list, &t->child_elem);
+  list_init (&t->files_list);
+  list_init (&t->mfiles_list);
+#endif
+
   return tid;
 }
 
