@@ -73,7 +73,7 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
-    thread_exit ();
+    thread_exit (-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -123,6 +123,12 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+   //char *name="wait", cur->tid, status);
+  printf ("%s: exit(%d)\n", cur->name, cur->ret_status);
+if(thread_tid() == 1){
+    return;
+}
+process_close_all();
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -141,7 +147,19 @@ process_exit (void)
       pagedir_destroy (pd);
     }
 }
-
+void process_close_all(void)
+{
+  struct list *fd_table = &thread_current()->desc_table;
+  struct list_elem *e = list_begin (fd_table);
+  while (e != list_end (fd_table))
+    {
+      struct fd_entry *tmp = list_entry (e, struct fd_entry, elem);
+      e = list_next (e);
+      process_close(tmp->fd);
+    }
+  // close
+  file_close (thread_current()->executable);
+}
 /* Sets up the CPU for running user code in the current
    thread.
    This function is called on every context switch. */

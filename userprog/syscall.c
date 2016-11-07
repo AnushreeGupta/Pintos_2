@@ -29,6 +29,7 @@ struct user_file
     struct list_elem thread_elem;      /* List elem for a thread's file list */
 };
 
+static handler sc_handler[32];
 static struct lock file_lock;
 static struct list file_list;
 struct file* get_file (int fd);
@@ -37,21 +38,21 @@ syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 
-  syscall_map[SYS_HALT]     = (handler)sys_halt;
-  syscall_map[SYS_EXIT]     = (handler)sys_exit;
-  syscall_map[SYS_EXEC]     = (handler)sys_exec;
-  syscall_map[SYS_WAIT]     = (handler)sys_wait;
-  syscall_map[SYS_CREATE]   = (handler)sys_create;
-  syscall_map[SYS_REMOVE]   = (handler)sys_remove;
-  syscall_map[SYS_OPEN]     = (handler)sys_open;
-  syscall_map[SYS_FILESIZE] = (handler)sys_filesize;
-  syscall_map[SYS_READ]     = (handler)sys_read;
-  syscall_map[SYS_WRITE]    = (handler)sys_write;
-  syscall_map[SYS_SEEK]     = (handler)sys_seek;
-  syscall_map[SYS_TELL]     = (handler)sys_tell;
-  syscall_map[SYS_CLOSE]    = (handler)sys_close;
-  syscall_map[SYS_MMAP]     = (handler)sys_mmap;
-  syscall_map[SYS_MUNMAP]   = (handler)sys_munmap;
+  sc_handler[SYS_HALT]     = (handler)sys_halt;
+  sc_handler[SYS_EXIT]     = (handler)sys_exit;
+  sc_handler[SYS_EXEC]     = (handler)sys_exec;
+  sc_handler[SYS_WAIT]     = (handler)sys_wait;
+  sc_handler[SYS_CREATE]   = (handler)sys_create;
+  sc_handler[SYS_REMOVE]   = (handler)sys_remove;
+  sc_handler[SYS_OPEN]     = (handler)sys_open;
+  sc_handler[SYS_FILESIZE] = (handler)sys_filesize;
+  sc_handler[SYS_READ]     = (handler)sys_read;
+  sc_handler[SYS_WRITE]    = (handler)sys_write;
+  sc_handler[SYS_SEEK]     = (handler)sys_seek;
+  sc_handler[SYS_TELL]     = (handler)sys_tell;
+  sc_handler[SYS_CLOSE]    = (handler)sys_close;
+  sc_handler[SYS_MMAP]     = (handler)sys_mmap;
+  sc_handler[SYS_MUNMAP]   = (handler)sys_munmap;
 
   lock_init (&file_lock);
   list_init (&file_list);
@@ -61,7 +62,21 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   printf ("system call!\n");
-  thread_exit ();
+  if (!is_valid_pointer(f->esp, 4)){
+    thread_exit ();
+    return;
+  }
+  int syscall_num = * (int *)f->esp;
+
+  if (syscall_num < 0 || syscall_num >= 20){
+    thread_exit ();
+    return;
+  }
+  if(syscall_handlers[syscall_num](f) == -1){
+    thread_exit ();
+    return;
+}
+ 
 }
 
 static void
